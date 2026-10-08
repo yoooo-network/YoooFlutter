@@ -21,6 +21,7 @@ class _BookingsPageState extends State<BookingsPage> {
   int? _footerHoverIndex;
   bool _isLoadingProfile = true;
   bool _isPremium = false;
+  List<Map<String, dynamic>> _bookings = [];
 
   @override
   void initState() {
@@ -41,15 +42,36 @@ class _BookingsPageState extends State<BookingsPage> {
           'Accept': 'application/json',
         },
       );
-      if (response.statusCode != 200) return;
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final payload = data is Map ? data['data'] : null;
+        final profile = payload is Map ? payload['profile'] : null;
+        final membership = profile is Map
+            ? profile['membership']?.toString().toLowerCase()
+            : null;
+        _isPremium = membership == 'premium' || membership == 'vip';
+      }
 
-      final data = json.decode(response.body);
-      final payload = data is Map ? data['data'] : null;
-      final profile = payload is Map ? payload['profile'] : null;
-      final membership = profile is Map
-          ? profile['membership']?.toString().toLowerCase()
-          : null;
-      _isPremium = membership == 'premium' || membership == 'vip';
+      final bookingsResponse = await http.get(
+        Uri.parse('${ApiEndpoints.baseUrl}/user/bookings'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (bookingsResponse.statusCode == 200) {
+        final bookingsData = json.decode(bookingsResponse.body);
+        final bookingsPayload = bookingsData is Map ? bookingsData['data'] : null;
+        final rawBookings = bookingsPayload is Map ? bookingsPayload['bookings'] : null;
+        if (rawBookings is List) {
+          _bookings = rawBookings
+              .whereType<Map>()
+              .map((booking) => Map<String, dynamic>.from(booking))
+              .where((booking) =>
+                  booking['status']?.toString().trim().toLowerCase() == 'approved')
+              .toList();
+        }
+      }
     } catch (e) {
       debugPrint('Bookings profile fetch error: $e');
     } finally {
@@ -73,8 +95,9 @@ class _BookingsPageState extends State<BookingsPage> {
         hoverIndex: _footerHoverIndex,
         onHover: (index) => setState(() => _footerHoverIndex = index),
       ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Center(
           child: Container(
             padding: const EdgeInsets.all(32),
@@ -96,12 +119,74 @@ class _BookingsPageState extends State<BookingsPage> {
                     width: 48,
                     child: CircularProgressIndicator(),
                   )
+                : _bookings.isNotEmpty
+                ? _ApprovedBookings(bookings: _bookings)
                 : _isPremium
                 ? const _PremiumEmptyState()
                 : _FreeEmptyState(),
           ),
         ),
+        ),
       ),
+    );
+  }
+}
+
+class _ApprovedBookings extends StatelessWidget {
+  const _ApprovedBookings({required this.bookings});
+
+  final List<Map<String, dynamic>> bookings;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: bookings.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final booking = bookings[index];
+        final createdAt = DateTime.tryParse(booking['created_at']?.toString() ?? '');
+        final received = createdAt == null
+            ? null
+            : '${createdAt.toLocal().month}/${createdAt.toLocal().day}/${createdAt.toLocal().year}';
+        final phone = booking['phone']?.toString() ?? '';
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(
+                  child: Text(
+                    booking['name']?.toString() ?? 'Booking',
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                  ),
+                ),
+                const Text('Approved', style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.w700)),
+              ]),
+              if (received != null) ...[
+                const SizedBox(height: 4),
+                Text('Received $received', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+              ],
+              if (phone.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Phone: $phone', style: const TextStyle(color: Color(0xFF334155))),
+              ],
+              if ((booking['message']?.toString() ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(booking['message'].toString(), style: const TextStyle(color: Color(0xFF334155), height: 1.4)),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

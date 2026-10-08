@@ -1,0 +1,11 @@
+name: yooo_profile_widgets
+homepage: https://www.yooo.app
+description: Reusable Flutter widgets for profile cards, tags, stats, pricing, and image galleries.
+version: 0.1.0
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter

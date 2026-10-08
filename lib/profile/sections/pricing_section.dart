@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../widgets/pricing_table.dart';
+import 'package:yooo_profile_widgets/yooo_profile_widgets.dart';
 
 class PricingSection extends StatelessWidget {
   const PricingSection({super.key, required this.profile});

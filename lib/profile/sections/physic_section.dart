@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../widgets/info_grid.dart';
-import '../widgets/stat_tile.dart';
+import 'package:yooo_profile_widgets/yooo_profile_widgets.dart';
 
 class PhysicSection extends StatelessWidget {
   const PhysicSection({super.key, required this.profile});

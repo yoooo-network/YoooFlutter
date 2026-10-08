@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../widgets/tag_wrap.dart';
+import 'package:yooo_profile_widgets/yooo_profile_widgets.dart';
 
 class AboutSection extends StatelessWidget {
   const AboutSection({super.key, required this.profile});
